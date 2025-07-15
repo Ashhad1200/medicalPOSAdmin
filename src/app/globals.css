@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Ensure better text visibility */
+* {
+  color: inherit;
+}
+
+/* Override gray text colors for better visibility */
+.text-gray-600 {
+  color: #374151 !important;
+}
+
+.text-gray-700 {
+  color: #374151 !important;
+}
+
+.text-gray-500 {
+  color: #6b7280 !important;
+}
+
+.text-gray-400 {
+  color: #9ca3af !important;
+}
+
+/* Ensure form labels and text are visible */
+label {
+  color: #1f2937 !important;
+  font-weight: 500;
+}
+
+input, select, textarea {
+  color: #1f2937 !important;
+}
+
+/* Table text visibility */
+table {
+  color: #1f2937 !important;
+}
+
+th, td {
+  color: #1f2937 !important;
+}
+
+/* Button text visibility */
+button {
+  color: inherit;
+}
+
+/* Link visibility */
+a {
+  color: inherit;
+}
