@@ -35,8 +35,7 @@ export default function CreateUserModal({
 
     // Role & Organization
     role: "user" as const,
-    selectedRole: "",
-    roleInPOS: "",
+    roleInPOS: "counter" as const, // Add POS role field
     organizationId: "",
 
     // Access Control
@@ -141,6 +140,9 @@ export default function CreateUserModal({
     // Required fields
     if (!formData.organizationId) {
       newErrors.organizationId = "Organization is required";
+    }
+    if (!formData.roleInPOS) {
+      newErrors.roleInPOS = "POS Role is required";
     }
 
     // Date validation
@@ -259,8 +261,7 @@ export default function CreateUserModal({
       phone: "",
       avatar: "",
       role: "user",
-      selectedRole: "",
-      roleInPOS: "",
+      roleInPOS: "counter",
       organizationId: "",
       subscriptionStatus: "pending",
       accessValidTill: "",
@@ -578,7 +579,7 @@ export default function CreateUserModal({
 
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">
-                    POS Role
+                    POS Role <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.roleInPOS}
@@ -586,17 +587,25 @@ export default function CreateUserModal({
                       updateFormData("roleInPOS", e.target.value)
                     }
                     disabled={createUser.isPending}
-                    className="w-full border rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-gray-300 transition-colors duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className={`w-full border rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 transition-colors duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                      errors.roleInPOS
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                    }`}
                   >
-                    <option value="">Select POS Role</option>
                     <option value="counter">Counter Staff</option>
                     <option value="pharmacist">Pharmacist</option>
                     <option value="manager">Store Manager</option>
                     <option value="admin">System Admin</option>
                   </select>
                   <p className="text-gray-500 text-xs mt-1">
-                    Role in the main POS system
+                    Role in the main POS system (required for login)
                   </p>
+                  {errors.roleInPOS && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.roleInPOS}
+                    </p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">
