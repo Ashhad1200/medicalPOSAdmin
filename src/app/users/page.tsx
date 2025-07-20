@@ -7,14 +7,7 @@ import { useState } from "react";
 import CreateUserModal from "@/components/modals/CreateUserModal";
 import DeleteConfirmationModal from "@/components/modals/DeleteConfirmationModal";
 import { toast } from "sonner";
-import { Database } from "@/config/database.types";
-
-type User = Database["public"]["Tables"]["users"]["Row"] & {
-  organization?: {
-    name: string;
-    code: string;
-  };
-};
+import { User } from "@/config/supabase";
 
 export default function UsersPage() {
   const { data: users, isLoading, error } = useUsers(undefined);
@@ -56,223 +49,259 @@ export default function UsersPage() {
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Users</h2>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-        >
-          Create User
-        </button>
-      </div>
-
-      {isLoading && (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading users...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-red-700 font-medium">{(error as Error).message}</p>
-        </div>
-      )}
-
-      {users && users.length === 0 && (
-        <div className="text-center py-8 bg-white rounded-lg shadow">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-            />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">
-            No users found
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Get started by creating a new user.
-          </p>
-          <div className="mt-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="glass-card rounded-2xl p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                <span className="gradient-text">User Management</span>
+              </h1>
+              <p className="text-white/70">
+                Manage user accounts, roles, and permissions across your organization.
+              </p>
+            </div>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="glass rounded-xl px-6 py-3 text-white font-medium hover:scale-105 transition-all duration-300 flex items-center space-x-2"
             >
-              Create User
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>Create User</span>
             </button>
           </div>
         </div>
-      )}
 
-      {users && users.length > 0 && (
-        <div className="overflow-x-auto bg-white rounded-lg shadow">
-          <table className="min-w-full text-sm text-left">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 font-medium text-gray-900">
-                  Username
-                </th>
-                <th className="px-4 py-3 font-medium text-gray-900">Email</th>
-                <th className="px-4 py-3 font-medium text-gray-900">Role</th>
-                <th className="px-4 py-3 font-medium text-gray-900">
-                  Organization
-                </th>
-                <th className="px-4 py-3 font-medium text-gray-900">
-                  Full Name
-                </th>
-                <th className="px-4 py-3 font-medium text-gray-900">Phone</th>
-                <th className="px-4 py-3 font-medium text-gray-900">
-                  Subscription Status
-                </th>
-                <th className="px-4 py-3 font-medium text-gray-900">
-                  Is Active
-                </th>
-                <th className="px-4 py-3 font-medium text-gray-900">
-                  Is Email Verified
-                </th>
-                <th className="px-4 py-3 font-medium text-gray-900">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/users/${u.id}`}
-                      className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                    >
-                      {u.username}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
-                      {u.role || "user"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">
-                    {u.organization?.name}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{u.full_name}</td>
-                  <td className="px-4 py-3 text-gray-700">{u.phone}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        u.subscription_status === "active"
-                          ? "bg-green-100 text-green-800"
-                          : u.subscription_status === "pending"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : u.subscription_status === "suspended"
-                          ? "bg-orange-100 text-orange-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {u.subscription_status || "pending"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        u.is_active
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {u.is_active ? "Yes" : "No"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        u.is_email_verified
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {u.is_email_verified ? "Yes" : "No"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center space-x-2">
+        {isLoading && (
+          <div className="glass-card rounded-2xl p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500/30 border-t-purple-500 mx-auto mb-4"></div>
+            <p className="text-white/70 text-lg">Loading users...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="glass-card rounded-2xl p-6 border border-red-500/30">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-white font-medium">{(error as Error).message}</p>
+            </div>
+          </div>
+        )}
+
+        {users && users.length === 0 && (
+          <div className="glass-card rounded-2xl p-12 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">
+              No users found
+            </h3>
+            <p className="text-white/70 mb-8">
+              Get started by creating your first user account.
+            </p>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="glass rounded-xl px-8 py-4 text-white font-medium hover:scale-105 transition-all duration-300 inline-flex items-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>Create First User</span>
+            </button>
+          </div>
+        )}
+
+        {users && users.length > 0 && (
+          <div className="space-y-6">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="glass-card rounded-xl p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm">Total Users</p>
+                    <p className="text-white text-xl font-bold">{users.length}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="glass-card rounded-xl p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm">Active Users</p>
+                    <p className="text-white text-xl font-bold">{users.filter(u => u.isActive).length}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="glass-card rounded-xl p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm">Verified</p>
+                    <p className="text-white text-xl font-bold">{users.filter(u => u.isEmailVerified).length}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="glass-card rounded-xl p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm">Organizations</p>
+                    <p className="text-white text-xl font-bold">{new Set(users.map(u => u.organization?.name).filter(Boolean)).size}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Users Grid */}
+            <div className="glass-card rounded-2xl p-8">
+              <h2 className="text-2xl font-bold text-white mb-6">All Users</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {users.map((u) => (
+                  <div key={u.id} className="glass rounded-xl p-6 hover:scale-105 transition-all duration-300">
+                    {/* User Header */}
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
+                        {u.username?.charAt(0).toUpperCase() || u.email?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          href={`/users/${u.id}`}
+                          className="text-white font-semibold hover:text-purple-300 transition-colors block truncate"
+                        >
+                          {u.username}
+                        </Link>
+                        <p className="text-white/60 text-sm truncate">{u.email}</p>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className={`w-3 h-3 rounded-full ${
+                          u.isActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'
+                        }`}></div>
+                      </div>
+                    </div>
+
+                    {/* User Details */}
+                    <div className="space-y-3 mb-4">
+                      {u.fullName && (
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span className="text-white/80 text-sm">{u.fullName}</span>
+                        </div>
+                      )}
+                      {u.phone && (
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          <span className="text-white/80 text-sm">{u.phone}</span>
+                        </div>
+                      )}
+                      {u.organization?.name && (
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          <span className="text-white/80 text-sm">{u.organization.name}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Badges */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-300 border border-blue-500/30">
+                        {u.role || "user"}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        u.subscriptionStatus === "active"
+                          ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 border border-green-500/30"
+                          : u.subscriptionStatus === "pending"
+                          ? "bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 border border-yellow-500/30"
+                          : u.subscriptionStatus === "suspended"
+                          ? "bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-300 border border-orange-500/30"
+                          : "bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-300 border border-red-500/30"
+                      }`}>
+                        {u.subscriptionStatus || "pending"}
+                      </span>
+                      {u.isEmailVerified && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30">
+                          verified
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex space-x-2">
                       <Link
                         href={`/users/${u.id}`}
-                        className="inline-flex items-center px-3 py-1.5 border border-blue-300 rounded-md text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 glass rounded-lg px-3 py-2 text-center text-white text-sm font-medium hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-1"
                       >
-                        <svg
-                          className="w-4 h-4 mr-1"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                          />
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        View
+                        <span>View</span>
                       </Link>
                       <button
                         onClick={() => openDeleteModal(u)}
-                        className="inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        className="glass rounded-lg px-3 py-2 text-red-300 text-sm font-medium hover:scale-105 transition-all duration-300 flex items-center justify-center"
                       >
-                        <svg
-                          className="w-4 h-4 mr-1"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        Delete
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
-      <CreateUserModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
+        <CreateUserModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+        />
 
-      <DeleteConfirmationModal
-        isOpen={deleteModal.isOpen}
-        onClose={closeDeleteModal}
-        onConfirm={handleDeleteUser}
-        title="Delete User"
-        message="Are you sure you want to delete this user? This will deactivate the user account and they will no longer be able to access the system."
-        itemName={
-          deleteModal.user
-            ? `${deleteModal.user.username} (${deleteModal.user.email})`
-            : ""
-        }
-        isDeleting={deleteUser.isPending}
-        dangerLevel="high"
-      />
+        <DeleteConfirmationModal
+          isOpen={deleteModal.isOpen}
+          onClose={closeDeleteModal}
+          onConfirm={handleDeleteUser}
+          title="Delete User"
+          message="Are you sure you want to delete this user? This will deactivate the user account and they will no longer be able to access the system."
+          itemName={
+            deleteModal.user
+              ? `${deleteModal.user.username} (${deleteModal.user.email})`
+              : ""
+          }
+          isDeleting={deleteUser.isPending}
+          dangerLevel="high"
+        />
+      </div>
     </AdminLayout>
   );
 }

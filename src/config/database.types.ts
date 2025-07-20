@@ -62,6 +62,7 @@ export interface Database {
           max_users: number;
           current_users: number;
           trial_ends_at: string | null;
+          access_valid_till: string | null;
           billing_email: string | null;
           tax_id: string | null;
           currency: string;
@@ -94,3 +95,8 @@ export interface Database {
     Functions: Record<string, unknown>;
   };
 }
+
+// Export convenience types
+export type User = Database["public"]["Tables"]["users"]["Row"];
+export type Organization = Database["public"]["Tables"]["organizations"]["Row"];
+export type AuditLog = Database["public"]["Tables"]["audit_logs"]["Row"];

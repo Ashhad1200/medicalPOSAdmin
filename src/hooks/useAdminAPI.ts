@@ -276,6 +276,7 @@ export function useCreateOrganization() {
       email?: string;
       subscriptionTier?: string;
       maxUsers?: number;
+      accessValidTill?: string;
     }) => {
       const response = await fetch("/api/admin/organizations", {
         method: "POST",
@@ -338,6 +339,24 @@ export function useUpdateOrganization() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
     },
+  });
+}
+
+export function useOrganization(organizationId: string) {
+  return useQuery({
+    queryKey: ["organization", organizationId],
+    queryFn: async () => {
+      if (!organizationId) throw new Error("Organization ID is required");
+
+      const response = await fetch(`/api/admin/organizations/${organizationId}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch organization");
+      }
+
+      return response.json();
+    },
+    enabled: !!organizationId,
   });
 }
 
@@ -483,7 +502,7 @@ export function useBulkUpdateUsers() {
   });
 }
 
-// ===================== USER LEDGER =====================
+// ===================== LEDGER MANAGEMENT =====================
 
 export function useUserLedger(userId?: string) {
   return useQuery({
@@ -500,5 +519,23 @@ export function useUserLedger(userId?: string) {
       return response.json();
     },
     enabled: !!userId,
+  });
+}
+
+export function useOrganizationLedger(organizationId?: string) {
+  return useQuery({
+    queryKey: ["organization-ledger", organizationId],
+    queryFn: async () => {
+      if (!organizationId) throw new Error("Organization ID is required");
+
+      const response = await fetch(`/api/admin/ledger?organizationId=${organizationId}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch organization ledger");
+      }
+
+      return response.json();
+    },
+    enabled: !!organizationId,
   });
 }

@@ -1,8 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Modern Dark Theme with Purple Gradients */
+  --background: #0f0f23;
+  --background-secondary: #1a1a2e;
+  --background-tertiary: #16213e;
+  --foreground: #ffffff;
+  --foreground-secondary: #e2e8f0;
+  --foreground-muted: #94a3b8;
+  
+  /* Purple Gradient Colors */
+  --primary: #8b5cf6;
+  --primary-dark: #7c3aed;
+  --primary-light: #a78bfa;
+  --accent: #ec4899;
+  --accent-light: #f472b6;
+  
+  /* Glass Effect Variables */
+  --glass-bg: rgba(139, 92, 246, 0.1);
+  --glass-border: rgba(139, 92, 246, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.37);
+  
+  /* Sidebar Glass */
+  --sidebar-bg: rgba(15, 15, 35, 0.8);
+  --sidebar-border: rgba(139, 92, 246, 0.1);
 }
 
 @theme inline {
@@ -12,66 +33,164 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+
+/* Glassmorphism Base Classes */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-sidebar {
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--sidebar-border);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated Gradient Background */
+.animated-bg {
+  background: linear-gradient(-45deg, #0f0f23, #1a1a2e, #16213e, #2d1b69);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Modern Form Styling */
+input, select, textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  color: var(--foreground);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Modern Button Styling */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  border: none;
+  color: white;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px 0 rgba(139, 92, 246, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px 0 rgba(139, 92, 246, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--foreground);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Table Styling */
+table {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+th {
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+td {
+  color: var(--foreground-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+tr:hover {
+  background: rgba(139, 92, 246, 0.05);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--primary-dark), var(--accent));
+}
+
+/* Loading Animation */
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Floating Elements */
+.floating {
+  animation: floating 6s ease-in-out infinite;
 }
 
-/* Ensure better text visibility */
-* {
-  color: inherit;
-}
-
-/* Override gray text colors for better visibility */
-.text-gray-600 {
-  color: #374151 !important;
-}
-
-.text-gray-700 {
-  color: #374151 !important;
-}
-
-.text-gray-500 {
-  color: #6b7280 !important;
-}
-
-.text-gray-400 {
-  color: #9ca3af !important;
-}
-
-/* Ensure form labels and text are visible */
-label {
-  color: #1f2937 !important;
-  font-weight: 500;
-}
-
-input, select, textarea {
-  color: #1f2937 !important;
-}
-
-/* Table text visibility */
-table {
-  color: #1f2937 !important;
-}
-
-th, td {
-  color: #1f2937 !important;
-}
-
-/* Button text visibility */
-button {
-  color: inherit;
-}
-
-/* Link visibility */
-a {
-  color: inherit;
+@keyframes floating {
+  0% { transform: translate(0, 0px); }
+  50% { transform: translate(0, -10px); }
+  100% { transform: translate(0, 0px); }
 }

@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 
-interface AddLedgerEntryModalProps {
+interface AddOrganizationLedgerEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: string;
-  userName: string;
+  organizationId: string;
+  organizationName: string;
 }
 
-export default function AddLedgerEntryModal({
+export default function AddOrganizationLedgerEntryModal({
   isOpen,
   onClose,
-  userId,
-  userName,
-}: AddLedgerEntryModalProps) {
+  organizationId,
+  organizationName,
+}: AddOrganizationLedgerEntryModalProps) {
   const [formData, setFormData] = useState({
     transactionType: "credit" as "credit" | "debit",
     description: "",
@@ -36,7 +36,7 @@ export default function AddLedgerEntryModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
+          organizationId,
           ...formData,
           amount: parseFloat(formData.amount),
         }),
@@ -76,7 +76,7 @@ export default function AddLedgerEntryModal({
           </div>
           <div>
             <h2 className="text-xl font-semibold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Add Ledger Entry</h2>
-            <p className="text-sm text-gray-400">User: {userName}</p>
+            <p className="text-sm text-gray-400">Organization: {organizationName}</p>
           </div>
         </div>
 
@@ -201,14 +201,14 @@ export default function AddLedgerEntryModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-gray-300 font-medium backdrop-blur-sm hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
+              className="px-4 py-2 text-gray-300 hover:text-white transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-400/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Adding..." : "Add Entry"}
             </button>

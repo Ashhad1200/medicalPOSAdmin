@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
         subscription_tier: orgData.subscriptionTier || "basic",
         max_users: orgData.maxUsers || 5,
         current_users: 0,
+        access_valid_till: orgData.accessValidTill ? new Date(orgData.accessValidTill).toISOString() : null,
         created_at: now,
         updated_at: now,
       })

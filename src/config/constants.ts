@@ -15,6 +15,7 @@ export const APP_CONFIG = {
 
   // Authentication Role Hierarchy
   AUTH: {
+    ROLES: ["restricted", "user", "manager", "admin"] as const,
     ROLE_HIERARCHY: {
       restricted: 1,
       user: 2,

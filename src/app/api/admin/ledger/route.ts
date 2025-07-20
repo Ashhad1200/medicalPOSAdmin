@@ -15,19 +15,39 @@ export async function GET(request: NextRequest) {
     const supabaseAdmin = getSupabaseAdmin();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
+    const organizationId = searchParams.get("organizationId");
 
-    if (!userId) {
+    if (!userId && !organizationId) {
       return NextResponse.json(
-        { error: "userId is required" },
+        { error: "Either userId or organizationId is required" },
         { status: 400 }
       );
     }
 
-    const { data, error } = await supabaseAdmin
-      .from("user_ledger")
-      .select("*")
-      .eq("userId", userId)
-      .order("transactionDate", { ascending: false });
+    let query = supabaseAdmin.from("user_ledger").select("*");
+
+    if (userId) {
+      query = query.eq("userId", userId);
+    } else if (organizationId) {
+      // For organization ledger, we need to join with users table to get organization-specific entries
+      const { data: orgUsers, error: usersError } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("organization_id", organizationId);
+
+      if (usersError) {
+        return NextResponse.json({ error: usersError.message }, { status: 400 });
+      }
+
+      const userIds = orgUsers.map(user => user.id);
+      if (userIds.length === 0) {
+        return NextResponse.json([]);
+      }
+
+      query = query.in("userId", userIds);
+    }
+
+    const { data, error } = await query.order("transactionDate", { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -52,11 +72,49 @@ export async function POST(request: NextRequest) {
     const ledgerId = generateUUID();
     const now = new Date().toISOString();
 
+    let targetUserId = ledgerData.userId;
+
+    // If organizationId is provided, get the organization's primary user or admin
+    if (ledgerData.organizationId && !ledgerData.userId) {
+      const { data: orgUsers, error: usersError } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("organization_id", ledgerData.organizationId)
+        .eq("role", "admin")
+        .limit(1);
+
+      if (usersError || !orgUsers || orgUsers.length === 0) {
+        // If no admin found, get any user from the organization
+        const { data: anyUser, error: anyUserError } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .eq("organization_id", ledgerData.organizationId)
+          .limit(1);
+
+        if (anyUserError || !anyUser || anyUser.length === 0) {
+          return NextResponse.json(
+            { error: "No users found for this organization" },
+            { status: 400 }
+          );
+        }
+        targetUserId = anyUser[0].id;
+      } else {
+        targetUserId = orgUsers[0].id;
+      }
+    }
+
+    if (!targetUserId) {
+      return NextResponse.json(
+        { error: "userId or organizationId is required" },
+        { status: 400 }
+      );
+    }
+
     // Get current balance
     const { data: currentLedger } = await supabaseAdmin
       .from("user_ledger")
       .select("runningBalance")
-      .eq("userId", ledgerData.userId)
+      .eq("userId", targetUserId)
       .order("transactionDate", { ascending: false })
       .limit(1);
 
@@ -77,7 +135,7 @@ export async function POST(request: NextRequest) {
       .from("user_ledger")
       .insert({
         id: ledgerId,
-        userId: ledgerData.userId,
+        userId: targetUserId,
         transactionType: ledgerData.transactionType,
         description: ledgerData.description,
         referenceNumber: ledgerData.referenceNumber || null,

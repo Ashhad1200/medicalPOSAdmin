@@ -156,6 +156,22 @@ export interface Organization {
   isActive: boolean;
 }
 
+export interface AuditLog {
+  id: string;
+  organizationId?: string;
+  userId?: string;
+  action: string;
+  entity: string;
+  entityId?: string;
+  oldValues?: Record<string, any>;
+  newValues?: Record<string, any>;
+  reason?: string;
+  performedBy?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
 // Authentication-related error types
 export enum AuthErrorType {
   INVALID_CREDENTIALS = "INVALID_CREDENTIALS",
