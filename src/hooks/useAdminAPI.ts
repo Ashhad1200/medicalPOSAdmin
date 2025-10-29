@@ -1,541 +1,259 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User, Organization, AuditLog } from "@/config/supabase";
-import { useAuth } from "./useAuth";
+/**
+ * Admin API Hooks - Using Backend API Service
+ * All queries and mutations go through the unified backend API service
+ */
 
-// ===================== USER MANAGEMENT =====================
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as api from '@/services/api';
 
-export function useUsers(
-  organizationId?: string,
-  filters?: {
-    role?: string;
-    status?: string;
-    search?: string;
-  }
-) {
-  return useQuery({
-    queryKey: ["users", organizationId, filters],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-
-      if (organizationId) params.append("organizationId", organizationId);
-      if (filters?.role) params.append("role", filters.role);
-      if (filters?.status) params.append("status", filters.status);
-      if (filters?.search) params.append("search", filters.search);
-
-      const response = await fetch(`/api/admin/users?${params}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-
-      return response.json() as Promise<User[]>;
-    },
-  });
-}
-
-export function useUser(userId: string) {
-  return useQuery({
-    queryKey: ["user", userId],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/users/${userId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch user");
-      }
-      return response.json() as Promise<User>;
-    },
-    enabled: !!userId,
-  });
-}
-
-export function useCreateUser() {
-  const queryClient = useQueryClient();
-  const { appUser } = useAuth();
-
-  return useMutation({
-    mutationFn: async (userData: {
-      // Required fields
-      email: string;
-      password: string;
-      username: string;
-      organization_id: string;
-
-      // Basic information
-      full_name?: string;
-      phone?: string;
-      avatar_url?: string;
-
-      // Role & Permissions
-      role?: "admin" | "manager" | "user";
-      role_in_pos?: string;
-      permissions?: string[];
-
-      // Access Control
-      subscription_status?: "pending" | "active" | "suspended" | "expired";
-      access_valid_till?: string;
-      trial_ends_at?: string;
-      is_trial_user?: boolean;
-      is_active?: boolean;
-      is_email_verified?: boolean;
-
-      // Security
-      two_factor_enabled?: boolean;
-
-      // Preferences
-      theme?: "light" | "dark" | "auto";
-      language?: string;
-      timezone?: string;
-      notification_settings?: Record<string, any>;
-      preferences?: Record<string, any>;
-
-      // Management
-      created_by?: string;
-      approved_by?: string;
-      approved_at?: string;
-      deactivation_reason?: string;
-    }) => {
-      const response = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...userData,
-          created_by: userData.created_by || appUser?.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create user");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-    },
-  });
-}
-
-export function useUpdateUser() {
-  const queryClient = useQueryClient();
-  const { appUser } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({
-      userId,
-      updates,
-      reason,
-    }: {
-      userId: string;
-      updates: Partial<User>;
-      reason?: string;
-    }) => {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          updates,
-          reason,
-          updatedBy: appUser?.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update user");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-    },
-  });
-}
-
-export function useExtendUserAccess() {
-  const queryClient = useQueryClient();
-  const { appUser } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({
-      userId,
-      extensionDays,
-      reason,
-    }: {
-      userId: string;
-      extensionDays: number;
-      reason?: string;
-    }) => {
-      const response = await fetch(`/api/admin/users/${userId}/extend-access`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          extensionDays,
-          reason,
-          extendedBy: appUser?.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to extend user access");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
-  });
-}
-
-export function useDeleteUser() {
-  const queryClient = useQueryClient();
-  const { appUser } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({
-      userId,
-      reason,
-    }: {
-      userId: string;
-      reason?: string;
-    }) => {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reason: reason || "User deleted via admin panel",
-          deletedBy: appUser?.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete user");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-    },
-  });
-}
-
-// ===================== ORGANIZATION MANAGEMENT =====================
+// ==================== ORGANIZATIONS ====================
 
 export function useOrganizations(filters?: {
-  subscriptionTier?: string;
   search?: string;
+  subscriptionTier?: string;
   isActive?: boolean;
 }) {
   return useQuery({
-    queryKey: ["organizations", filters],
-    queryFn: async () => {
-      const params = new URLSearchParams();
+    queryKey: ['organizations', filters],
+    queryFn: () => api.getOrganizations(filters),
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
 
-      if (filters?.subscriptionTier)
-        params.append("subscriptionTier", filters.subscriptionTier);
-      if (filters?.search) params.append("search", filters.search);
-      if (filters?.isActive !== undefined)
-        params.append("isActive", filters.isActive.toString());
-
-      const response = await fetch(`/api/admin/organizations?${params}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch organizations");
-      }
-
-      return response.json();
-    },
+export function useOrganization(id: string) {
+  return useQuery({
+    queryKey: ['organization', id],
+    queryFn: () => api.getOrganization(id),
+    enabled: !!id,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
 export function useCreateOrganization() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (orgData: {
-      name: string;
-      code: string;
-      description?: string;
-      address?: string;
-      phone?: string;
-      email?: string;
-      subscriptionTier?: string;
-      maxUsers?: number;
-      accessValidTill?: string;
-    }) => {
-      const response = await fetch("/api/admin/organizations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orgData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create organization");
-      }
-
-      return response.json();
-    },
+    mutationFn: (data: any) => api.createOrganization(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["organizations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     },
   });
 }
 
 export function useUpdateOrganization() {
   const queryClient = useQueryClient();
-  const { appUser } = useAuth();
-
   return useMutation({
-    mutationFn: async ({
-      organizationId,
-      updates,
-      reason,
-    }: {
-      organizationId: string;
-      updates: Partial<Organization>;
-      reason?: string;
-    }) => {
-      const response = await fetch(
-        `/api/admin/organizations/${organizationId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            updates,
-            reason,
-            updatedBy: appUser?.id,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update organization");
-      }
-
-      return response.json();
-    },
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      api.updateOrganization(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     },
-  });
-}
-
-export function useOrganization(organizationId: string) {
-  return useQuery({
-    queryKey: ["organization", organizationId],
-    queryFn: async () => {
-      if (!organizationId) throw new Error("Organization ID is required");
-
-      const response = await fetch(`/api/admin/organizations/${organizationId}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch organization");
-      }
-
-      return response.json();
-    },
-    enabled: !!organizationId,
   });
 }
 
 export function useDeleteOrganization() {
   const queryClient = useQueryClient();
-  const { appUser } = useAuth();
-
   return useMutation({
-    mutationFn: async ({
-      organizationId,
-      reason,
-    }: {
-      organizationId: string;
-      reason?: string;
-    }) => {
-      const response = await fetch(
-        `/api/admin/organizations/${organizationId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            reason: reason || "Organization deleted via admin panel",
-            deletedBy: appUser?.id,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete organization");
-      }
-
-      return response.json();
-    },
+    mutationFn: (id: string) => api.deleteOrganization(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["organizations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     },
   });
 }
 
-// ===================== AUDIT LOGS =====================
+// ==================== USERS ====================
+
+export function useUsers(filters?: {
+  search?: string;
+  role?: string;
+  organizationId?: string;
+  isActive?: boolean;
+}) {
+  return useQuery({
+    queryKey: ['users', filters],
+    queryFn: () => api.getUsers(filters),
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUser(userId: string) {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => api.getUser(userId),
+    enabled: !!userId,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.createUser(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      api.updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+export function useUpdateUserRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) =>
+      api.updateUserRole(id, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+export function useExtendUserAccess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, days }: { id: string; days: number }) =>
+      api.extendUserAccess(id, days),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+export function useBulkUpdateUsers() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userIds, updates }: { userIds: string[]; updates: any }) =>
+      api.bulkUpdateUsers(userIds, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+// ==================== PERMISSIONS ====================
+
+export function useOrganizationPermissions(organizationId: string) {
+  return useQuery({
+    queryKey: ['organization-permissions', organizationId],
+    queryFn: () => api.getOrganizationPermissions(organizationId),
+    enabled: !!organizationId,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUpdateOrganizationPermissions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ organizationId, permissions }: { organizationId: string; permissions: any }) =>
+      api.updateOrganizationPermissions(organizationId, permissions),
+    onSuccess: (_data, { organizationId }) => {
+      queryClient.invalidateQueries({ queryKey: ['organization-permissions', organizationId] });
+    },
+  });
+}
+
+export function useResetOrganizationPermissions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (organizationId: string) =>
+      api.resetOrganizationPermissions(organizationId),
+    onSuccess: (_data, organizationId) => {
+      queryClient.invalidateQueries({ queryKey: ['organization-permissions', organizationId] });
+    },
+  });
+}
+
+// ==================== STATISTICS ====================
+
+export function useAdminStats() {
+  return useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: () => api.getAdminStats(),
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ==================== AUDIT LOGS ====================
 
 export function useAuditLogs(filters?: {
   organizationId?: string;
   userId?: string;
   action?: string;
-  entity?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  limit?: number;
+  startDate?: string;
+  endDate?: string;
 }) {
   return useQuery({
-    queryKey: ["audit-logs", filters],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-
-      if (filters?.organizationId)
-        params.append("organizationId", filters.organizationId);
-      if (filters?.userId) params.append("userId", filters.userId);
-      if (filters?.action) params.append("action", filters.action);
-      if (filters?.entity) params.append("entity", filters.entity);
-      if (filters?.dateFrom) params.append("dateFrom", filters.dateFrom);
-      if (filters?.dateTo) params.append("dateTo", filters.dateTo);
-      if (filters?.limit) params.append("limit", filters.limit.toString());
-
-      const response = await fetch(`/api/admin/audit-logs?${params}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch audit logs");
-      }
-
-      return response.json() as Promise<AuditLog[]>;
-    },
+    queryKey: ['audit-logs', filters],
+    queryFn: () => api.getAuditLogs(filters),
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-// ===================== DASHBOARD STATS =====================
+// ==================== LEDGER ====================
 
-export function useDashboardStats() {
+export function useUserLedger(userId: string, filters?: any) {
   return useQuery({
-    queryKey: ["dashboard-stats"],
-    queryFn: async () => {
-      const response = await fetch("/api/admin/stats");
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch dashboard stats");
-      }
-
-      return response.json() as Promise<{
-        totalUsers: number;
-        totalOrganizations: number;
-        activeUsers: number;
-        expiredUsers: number;
-        recentUsers: number;
-      }>;
-    },
-  });
-}
-
-// ===================== BULK OPERATIONS =====================
-
-export function useBulkUpdateUsers() {
-  const queryClient = useQueryClient();
-  const { appUser } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({
-      userIds,
-      updates,
-      reason,
-    }: {
-      userIds: string[];
-      updates: Partial<User>;
-      reason?: string;
-    }) => {
-      const response = await fetch("/api/admin/users/bulk-update", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userIds,
-          updates,
-          reason,
-          updatedBy: appUser?.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to bulk update users");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-    },
-  });
-}
-
-// ===================== LEDGER MANAGEMENT =====================
-
-export function useUserLedger(userId?: string) {
-  return useQuery({
-    queryKey: ["user-ledger", userId],
-    queryFn: async () => {
-      if (!userId) throw new Error("User ID is required");
-
-      const response = await fetch(`/api/admin/ledger?userId=${userId}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch user ledger");
-      }
-
-      return response.json();
-    },
+    queryKey: ['user-ledger', userId, filters],
+    queryFn: () => api.getUserLedger(userId, filters),
     enabled: !!userId,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useOrganizationLedger(organizationId?: string) {
-  return useQuery({
-    queryKey: ["organization-ledger", organizationId],
-    queryFn: async () => {
-      if (!organizationId) throw new Error("Organization ID is required");
-
-      const response = await fetch(`/api/admin/ledger?organizationId=${organizationId}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch organization ledger");
-      }
-
-      return response.json();
+export function useAddLedgerEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, data }: { userId: string; data: any }) =>
+      api.addLedgerEntry(userId, data),
+    onSuccess: (_data, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: ['user-ledger', userId] });
     },
+  });
+}
+
+export function useOrganizationLedger(organizationId: string, filters?: any) {
+  return useQuery({
+    queryKey: ['org-ledger', organizationId, filters],
+    queryFn: () => api.getOrganizationLedger(organizationId, filters),
     enabled: !!organizationId,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAddOrganizationLedgerEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ organizationId, data }: { organizationId: string; data: any }) =>
+      api.addOrganizationLedgerEntry(organizationId, data),
+    onSuccess: (_data, { organizationId }) => {
+      queryClient.invalidateQueries({ queryKey: ['org-ledger', organizationId] });
+    },
   });
 }

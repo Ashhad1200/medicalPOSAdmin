@@ -1,27 +1,28 @@
 import type { NextConfig } from "next";
 import * as dotenv from "dotenv";
 import * as path from "path";
-import { validateEnvironment } from "./src/lib/env-validator";
 
 // Explicitly load environment variables
 dotenv.config({
   path: path.resolve(process.cwd(), ".env.local"),
 });
 
-// Validate environment variables early
-try {
-  validateEnvironment(process.env);
-} catch (error) {
-  console.error("❌ Environment Configuration Failed:", error);
-  process.exit(1);
+// Simple environment validation
+const requiredEnvVars = [
+  'NEXT_PUBLIC_BACKEND_URL',
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.warn(`⚠️  Missing environment variable: ${envVar}`);
+  }
 }
 
 const nextConfig: NextConfig = {
   // Explicitly define environment variables
   env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
 
   // Webpack and Turbopack configuration
@@ -33,26 +34,41 @@ const nextConfig: NextConfig = {
       "@config/": path.resolve(__dirname, "./src/config"),
       "@components/": path.resolve(__dirname, "./src/components"),
       "@hooks/": path.resolve(__dirname, "./src/hooks"),
+      "@services/": path.resolve(__dirname, "./src/services"),
     };
 
     return config;
   },
 
-  // Logging for debugging
-  async rewrites() {
-    return [
-      {
-        source: "/env-debug",
-        destination: "/api/env-debug",
-      },
-    ];
+  // Image optimization
+  images: {
+    domains: ["localhost", "vercel.com"],
   },
 
-  // Performance and compatibility settings
-  productionBrowserSourceMaps: false,
-  optimizeFonts: true,
-  reactStrictMode: true,
+  // Suppress specific warnings
+  onDemandEntries: {
+    maxInactiveAge: 60 * 60 * 1000,
+    pagesBufferLength: 5,
+  },
+
+  // Enable SWC minification
   swcMinify: true,
+
+  // React strict mode for development
+  reactStrictMode: true,
+
+  // Generate ETags for caching
+  generateEtags: true,
+
+  // Enable TypeScript strict mode
+  typescript: {
+    tsconfigPath: "./tsconfig.json",
+  },
+
+  // ESLint during build
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
 };
 
 export default nextConfig;

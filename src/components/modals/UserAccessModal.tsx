@@ -17,9 +17,6 @@ export default function UserAccessModal({
   const [formData, setFormData] = useState({
     isActive: user?.isActive || false,
     subscriptionStatus: user?.subscriptionStatus || "pending",
-    accessValidTill: user?.accessValidTill
-      ? user.accessValidTill.split("T")[0]
-      : undefined,
     role: user?.role || "user",
     isTrialUser: user?.isTrialUser || false,
   });
@@ -34,9 +31,6 @@ export default function UserAccessModal({
         userId: user.id,
         updates: {
           ...formData,
-          accessValidTill: formData.accessValidTill
-            ? new Date(formData.accessValidTill).toISOString()
-            : undefined,
         },
         reason: "Admin access control update",
       });
@@ -115,22 +109,7 @@ export default function UserAccessModal({
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-200 mb-2">
-              Access Valid Until
-            </label>
-            <input
-              type="date"
-              value={formData.accessValidTill || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, accessValidTill: e.target.value || undefined })
-              }
-              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-200"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Leave empty for unlimited access
-            </p>
-          </div>
+
 
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-2">Role</label>
@@ -141,7 +120,10 @@ export default function UserAccessModal({
               }
               className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-200"
             >
+              <option value="restricted" className="bg-gray-800 text-white">Restricted</option>
+              <option value="customer" className="bg-gray-800 text-white">Customer</option>
               <option value="user" className="bg-gray-800 text-white">User</option>
+              <option value="counter" className="bg-gray-800 text-white">Counter</option>
               <option value="manager" className="bg-gray-800 text-white">Manager</option>
               <option value="admin" className="bg-gray-800 text-white">Admin</option>
             </select>
@@ -192,9 +174,7 @@ export default function UserAccessModal({
               <p>• Status: {formData.isActive ? "Active" : "Inactive"}</p>
               <p>• Subscription: {formData.subscriptionStatus}</p>
               <p>• Role: {formData.role}</p>
-              {formData.accessValidTill && (
-                <p>• Valid until: {formData.accessValidTill}</p>
-              )}
+              <p>• Access controlled at organization level</p>
             </div>
           </div>
 

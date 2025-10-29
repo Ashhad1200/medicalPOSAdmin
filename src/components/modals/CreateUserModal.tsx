@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useCreateUser } from "@/hooks/useAdminAPI";
+import { useCreateUser, useOrganizationPermissions } from "@/hooks/useAdminAPI";
 import { useOrganizations } from "@/hooks/useAdminAPI";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Organization } from "@/config/database.types";
+import { Organization, UserRole } from "@/config/database.types";
+import { getUserPermissions, hasPermission } from "@/utils/permissions";
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -37,7 +38,6 @@ export default function CreateUserModal({
 
     // Role & Organization
     role: "user" as const,
-    roleInPOS: "counter" as const, // Add POS role field
     organizationId: "",
 
     // Access Control
@@ -64,14 +64,36 @@ export default function CreateUserModal({
   const { data: organizations } = useOrganizations();
   const createUser = useCreateUser();
   const { appUser } = useAuth();
-  console.log(appUser)
+  
+  // Get organization permissions for role filtering
+  const { data: orgPermissions } = useOrganizationPermissions(
+    formData.organizationId || ""
+  );
+  
+  // Get available roles based on organization permissions
+  const availableRoles = useMemo(() => {
+    if (!orgPermissions?.roles) {
+      return ["restricted", "user", "manager", "admin"] as UserRole[];
+    }
+    
+    return Object.keys(orgPermissions.roles).filter(role => 
+      orgPermissions.roles[role as UserRole] !== undefined
+    ) as UserRole[];
+  }, [orgPermissions]);
+  
+  // Get permission preview for selected role
+  const permissionPreview = useMemo(() => {
+    if (!orgPermissions || !formData.role) return null;
+    
+    return getUserPermissions(orgPermissions, formData.role as UserRole);
+  }, [orgPermissions, formData.role]);
   // Update form data when appUser is available
   useEffect(() => {
     if (appUser?.email) {
       setFormData(prev => ({
         ...prev,
         createdBy: appUser.id,
-        approvedBy: appUser.i
+        approvedBy: appUser.id
       }));
     }
   }, [appUser]);
@@ -153,8 +175,13 @@ export default function CreateUserModal({
     if (!formData.organizationId) {
       newErrors.organizationId = "Organization is required";
     }
-    if (!formData.roleInPOS) {
-      newErrors.roleInPOS = "POS Role is required";
+    if (!formData.role) {
+      newErrors.role = "Role is required";
+    }
+
+    // Validate that the selected role is available for the organization
+    if (formData.role && !availableRoles.includes(formData.role as UserRole)) {
+      newErrors.role = "Selected role is not available for this organization";
     }
 
     // Remove empty errors
@@ -171,6 +198,7 @@ export default function CreateUserModal({
     validateUsername,
     validatePhone,
     validateUrl,
+    availableRoles,
   ]);
 
   const handleSubmit = useCallback(
@@ -188,7 +216,6 @@ export default function CreateUserModal({
           "phone",
           "avatar",
           "role",
-          "roleInPOS",
           "organizationId",
         ];
         const accessFields = [
@@ -215,7 +242,6 @@ export default function CreateUserModal({
           phone: formData.phone,
           avatar_url: formData.avatar,
           role: formData.role,
-          role_in_pos: formData.roleInPOS,
           organization_id: formData.organizationId,
           subscription_status: formData.subscriptionStatus,
           is_trial_user: formData.isTrialUser,
@@ -258,7 +284,6 @@ export default function CreateUserModal({
       phone: "",
       avatar: "",
       role: "user",
-      roleInPOS: "counter",
       organizationId: "",
       subscriptionStatus: "pending",
       isTrialUser: true,
@@ -489,7 +514,6 @@ export default function CreateUserModal({
                     const accessFields = [
                       "subscriptionStatus",
                       "selectedRole",
-                      "accessValidTill",
                       "trialEndsAt",
                     ];
                     if (tab.id === "basic") return basicFields.includes(field);
@@ -579,60 +603,92 @@ export default function CreateUserModal({
 
                 <div>
                   <label className="block text-sm font-medium mb-3 text-white">
-                    Admin Panel Role <span className="text-red-400">*</span>
+                    Organization Role <span className="text-red-400">*</span>
                   </label>
                   <select
                     value={formData.role}
                     onChange={(e) => updateFormData("role", e.target.value)}
-                    disabled={createUser.isPending}
+                    disabled={createUser.isPending || !formData.organizationId}
                     className={`w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 disabled:bg-white/5 disabled:cursor-not-allowed backdrop-blur-sm hover:bg-white/15 ${
                       errors.role
                         ? "border-red-500/50 focus:ring-red-500/50 focus:border-red-500/50"
                         : ""
                     }`}
                   >
-                    <option value="user" className="bg-gray-800 text-white">User</option>
-                    <option value="manager" className="bg-gray-800 text-white">Manager</option>
-                    <option value="admin" className="bg-gray-800 text-white">Admin</option>
+                    <option value="" className="bg-gray-800 text-white">
+                      {!formData.organizationId ? "Select organization first" : "Select role"}
+                    </option>
+                    {availableRoles.map((role) => (
+                      <option key={role} value={role} className="bg-gray-800 text-white">
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </option>
+                    ))}
                   </select>
                   <p className="text-white/60 text-xs mt-2">
-                    Controls access to admin panel features
+                    Role within the selected organization
                   </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-3 text-white">
-                    POS Role <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    value={formData.roleInPOS}
-                    onChange={(e) =>
-                      updateFormData("roleInPOS", e.target.value)
-                    }
-                    disabled={createUser.isPending}
-                    className={`w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 disabled:bg-white/5 disabled:cursor-not-allowed backdrop-blur-sm hover:bg-white/15 ${
-                      errors.roleInPOS
-                        ? "border-red-500/50 focus:ring-red-500/50 focus:border-red-500/50"
-                        : ""
-                    }`}
-                  >
-                    <option value="counter" className="bg-gray-800 text-white">Counter Staff</option>
-                    <option value="pharmacist" className="bg-gray-800 text-white">Pharmacist</option>
-                    <option value="manager" className="bg-gray-800 text-white">Store Manager</option>
-                    <option value="admin" className="bg-gray-800 text-white">System Admin</option>
-                  </select>
-                  <p className="text-white/60 text-xs mt-2">
-                    Role in the main POS system (required for login)
-                  </p>
-                  {errors.roleInPOS && (
+                  {errors.role && (
                     <p className="text-red-400 text-xs mt-2 flex items-center space-x-1">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span>{errors.roleInPOS}</span>
+                      <span>{errors.role}</span>
                     </p>
                   )}
                 </div>
+
+                {/* Permission Preview */}
+                {permissionPreview && formData.role && (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <h4 className="text-sm font-medium text-white mb-3">
+                      Role Permissions Preview
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <p className="text-white/80 font-medium mb-2">Admin Panel Access:</p>
+                        <div className="space-y-1">
+                          <div className={`flex items-center space-x-2 ${permissionPreview.modules.users?.actions.read ? 'text-green-400' : 'text-red-400'}`}>
+                             <span className="w-1 h-1 rounded-full bg-current"></span>
+                             <span>View Users</span>
+                           </div>
+                           <div className={`flex items-center space-x-2 ${permissionPreview.modules.users?.actions.update ? 'text-green-400' : 'text-red-400'}`}>
+                             <span className="w-1 h-1 rounded-full bg-current"></span>
+                             <span>Manage Users</span>
+                           </div>
+                           <div className={`flex items-center space-x-2 ${permissionPreview.modules.settings?.actions.read ? 'text-green-400' : 'text-red-400'}`}>
+                             <span className="w-1 h-1 rounded-full bg-current"></span>
+                             <span>View Settings</span>
+                           </div>
+                           <div className={`flex items-center space-x-2 ${permissionPreview.modules.settings?.actions.update ? 'text-green-400' : 'text-red-400'}`}>
+                             <span className="w-1 h-1 rounded-full bg-current"></span>
+                             <span>Manage Settings</span>
+                           </div>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-white/80 font-medium mb-2">POS System Access:</p>
+                        <div className="space-y-1">
+                          <div className={`flex items-center space-x-2 ${permissionPreview.modules.sales?.actions.read ? 'text-green-400' : 'text-red-400'}`}>
+                             <span className="w-1 h-1 rounded-full bg-current"></span>
+                             <span>View Sales</span>
+                           </div>
+                           <div className={`flex items-center space-x-2 ${permissionPreview.modules.sales?.actions.create ? 'text-green-400' : 'text-red-400'}`}>
+                             <span className="w-1 h-1 rounded-full bg-current"></span>
+                             <span>Process Sales</span>
+                           </div>
+                           <div className={`flex items-center space-x-2 ${permissionPreview.modules.inventory?.actions.read ? 'text-green-400' : 'text-red-400'}`}>
+                             <span className="w-1 h-1 rounded-full bg-current"></span>
+                             <span>View Inventory</span>
+                           </div>
+                           <div className={`flex items-center space-x-2 ${permissionPreview.modules.inventory?.actions.update ? 'text-green-400' : 'text-red-400'}`}>
+                             <span className="w-1 h-1 rounded-full bg-current"></span>
+                             <span>Manage Inventory</span>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-3 text-white">

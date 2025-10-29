@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useOrganization, useOrganizationLedger } from "@/hooks/useAdminAPI";
 import AdminLayout from "@/components/layout/AdminLayout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 import AddOrganizationLedgerEntryModal from "@/components/modals/AddOrganizationLedgerEntryModal";
 import Link from "next/link";
@@ -21,7 +22,8 @@ export default function OrganizationDetailPage() {
   const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
 
   return (
-    <AdminLayout>
+    <ProtectedRoute requiredRole="admin">
+      <AdminLayout>
       {/* Header Section */}
       <div className="glass-card rounded-xl p-6 mb-8">
         <div className="flex items-center justify-between">
@@ -296,6 +298,7 @@ export default function OrganizationDetailPage() {
         organizationId={organizationId || ""}
         organizationName={organization?.name || ""}
       />
-    </AdminLayout>
+      </AdminLayout>
+    </ProtectedRoute>
   );
 }

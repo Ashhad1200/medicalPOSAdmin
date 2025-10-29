@@ -2,6 +2,7 @@
 
 import { useOrganizations, useDeleteOrganization } from "@/hooks/useAdminAPI";
 import AdminLayout from "@/components/layout/AdminLayout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 import CreateOrganizationModal from "@/components/modals/CreateOrganizationModal";
 import DeleteConfirmationModal from "@/components/modals/DeleteConfirmationModal";
@@ -93,7 +94,8 @@ export default function OrganizationsPage() {
   };
 
   return (
-    <AdminLayout>
+    <ProtectedRoute requiredRole="admin">
+      <AdminLayout>
       {/* Header Section */}
       <div className="glass-card rounded-xl p-6 mb-8">
         <div className="flex justify-between items-center">
@@ -307,6 +309,7 @@ export default function OrganizationsPage() {
           organization={editModal.organization}
         />
       )}
-    </AdminLayout>
+      </AdminLayout>
+    </ProtectedRoute>
   );
 }

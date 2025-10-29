@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import LoginPage from "@/components/auth/LoginPage";
 import Dashboard from "@/components/dashboard/Dashboard";
 import AdminLayout from "@/components/layout/AdminLayout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function Home() {
   const { user, appUser, loading } = useAuth();
@@ -24,8 +25,10 @@ export default function Home() {
   }
 
   return (
-    <AdminLayout>
-      <Dashboard />
-    </AdminLayout>
+    <ProtectedRoute module="dashboard" action="read">
+      <AdminLayout>
+        <Dashboard />
+      </AdminLayout>
+    </ProtectedRoute>
   );
 }
